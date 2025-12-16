@@ -1,0 +1,587 @@
+@import "tailwindcss";
+
+@theme {
+  --font-sans: var(--font-inter);
+  --font-serif: var(--font-serif);
+
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  --radius-lg: var(--radius);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-sm: calc(var(--radius) - 4px);
+}
+
+:root {
+  /* Slate Light Theme */
+  --background: #f8fafc;
+  --foreground: #0f172a;
+
+  --card: #f1f5f9;
+  --card-foreground: #0f172a;
+
+  --popover: #ffffff;
+  --popover-foreground: #0f172a;
+
+  --primary: #6366f1;
+  --primary-foreground: #ffffff;
+
+  --secondary: #e2e8f0;
+  --secondary-foreground: #1e293b;
+
+  --muted: #e2e8f0;
+  --muted-foreground: #64748b;
+
+  --accent: #e0e7ff;
+  --accent-foreground: #1e293b;
+
+  --destructive: #ef4444;
+  --destructive-foreground: #fef2f2;
+
+  --border: #cbd5e1;
+  --input: #cbd5e1;
+  --ring: #6366f1;
+
+  --radius: 0.625rem;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    /* Slate Dark Theme */
+    --background: #0f172a;
+    --foreground: #f1f5f9;
+
+    --card: #1e293b;
+    --card-foreground: #f1f5f9;
+
+    --popover: #1e293b;
+    --popover-foreground: #f1f5f9;
+
+    --primary: #818cf8;
+    --primary-foreground: #0f172a;
+
+    --secondary: #334155;
+    --secondary-foreground: #f1f5f9;
+
+    --muted: #334155;
+    --muted-foreground: #94a3b8;
+
+    --accent: #3730a3;
+    --accent-foreground: #e0e7ff;
+
+    --destructive: #dc2626;
+    --destructive-foreground: #fef2f2;
+
+    --border: #334155;
+    --input: #334155;
+    --ring: #818cf8;
+  }
+}
+
+/* ========================================
+   Global Styles & Animations
+   ======================================== */
+* {
+  transition-property: color, background-color, border-color, opacity, box-shadow, transform;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  transition-duration: 150ms;
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+}
+
+/* ========================================
+   Animation Keyframes
+   ======================================== */
+@keyframes fade-in {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes fade-out {
+  from {
+    opacity: 1;
+  }
+
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slide-down {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes scale-in {
+  from {
+    opacity: 0;
+    transform: scale(0.95);
+  }
+
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+@keyframes float {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+@keyframes pulse-soft {
+
+  0%,
+  100% {
+    opacity: 1;
+  }
+
+  50% {
+    opacity: 0.7;
+  }
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -200% 0;
+  }
+
+  100% {
+    background-position: 200% 0;
+  }
+}
+
+/* Animation utility classes */
+.animate-fade-in {
+  animation: fade-in 0.3s ease-out forwards;
+}
+
+.animate-slide-up {
+  animation: slide-up 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-down {
+  animation: slide-down 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-scale-in {
+  animation: scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-soft {
+  animation: pulse-soft 2s ease-in-out infinite;
+}
+
+/* ========================================
+   Typography
+   ======================================== */
+.prose {
+  font-family: var(--font-serif);
+  line-height: 1.8;
+}
+
+.prose h1,
+.prose h2,
+.prose h3,
+.prose h4 {
+  font-family: var(--font-sans);
+  font-weight: 700;
+}
+
+/* ========================================
+   Block Cursor (Vim-style)
+   ======================================== */
+.ProseMirror {
+  caret-shape: block;
+  caret-color: var(--primary);
+}
+
+@supports not (caret-shape: block) {
+  .ProseMirror {
+    caret-color: var(--primary);
+  }
+}
+
+/* ========================================
+   Translucent Page Backgrounds
+   ======================================== */
+.editor-background-wrapper {
+  position: relative;
+  min-height: 100vh;
+}
+
+.editor-background {
+  position: fixed;
+  inset: 0;
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  opacity: 0.08;
+  pointer-events: none;
+  z-index: 0;
+  transition: opacity 0.5s ease, background-image 0.5s ease;
+}
+
+.editor-content-wrapper {
+  position: relative;
+  z-index: 1;
+}
+
+/* ========================================
+   Image Styles
+   ======================================== */
+.ProseMirror img {
+  max-width: 100%;
+  height: auto;
+  border-radius: 12px;
+  margin: 1.5rem 0;
+  cursor: pointer;
+  transition: transform 0.3s cubic-bezier(0.16, 1, 0.3, 1), box-shadow 0.3s ease;
+}
+
+.ProseMirror img:hover {
+  transform: scale(1.02);
+  box-shadow: 0 8px 30px rgba(0, 0, 0, 0.12);
+}
+
+.ProseMirror img.ProseMirror-selectednode {
+  outline: 3px solid var(--primary);
+  outline-offset: 3px;
+}
+
+/* ========================================
+   Task List Styles
+   ======================================== */
+.ProseMirror ul[data-type="taskList"] {
+  list-style: none;
+  padding-left: 0;
+}
+
+.ProseMirror ul[data-type="taskList"] li {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+
+.ProseMirror ul[data-type="taskList"] li>label {
+  flex-shrink: 0;
+  margin-top: 0.25rem;
+}
+
+.ProseMirror ul[data-type="taskList"] li>label input[type="checkbox"] {
+  width: 1.125rem;
+  height: 1.125rem;
+  accent-color: var(--primary);
+  cursor: pointer;
+  border-radius: 4px;
+  transition: transform 0.2s ease;
+}
+
+.ProseMirror ul[data-type="taskList"] li>label input[type="checkbox"]:hover {
+  transform: scale(1.1);
+}
+
+.ProseMirror ul[data-type="taskList"] li[data-checked="true"]>div {
+  text-decoration: line-through;
+  opacity: 0.5;
+}
+
+/* ========================================
+   Table Styles
+   ======================================== */
+.ProseMirror table {
+  border-collapse: collapse;
+  width: 100%;
+  margin: 1.5rem 0;
+  overflow: hidden;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+
+.ProseMirror th,
+.ProseMirror td {
+  border: 1px solid var(--border);
+  padding: 0.875rem 1rem;
+  text-align: left;
+  vertical-align: top;
+  min-width: 100px;
+  transition: background-color 0.15s ease;
+}
+
+.ProseMirror th {
+  background: var(--muted);
+  font-weight: 600;
+  font-family: var(--font-sans);
+}
+
+.ProseMirror td {
+  background: var(--background);
+}
+
+.ProseMirror td:hover {
+  background: var(--muted);
+}
+
+.ProseMirror .selectedCell {
+  background: var(--accent);
+}
+
+/* ========================================
+   Code Block Styles
+   ======================================== */
+.ProseMirror pre {
+  background: var(--muted);
+  border-radius: 12px;
+  padding: 1.25rem;
+  margin: 1.5rem 0;
+  overflow-x: auto;
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+  font-size: 0.875rem;
+  line-height: 1.7;
+  border: 1px solid var(--border);
+}
+
+.ProseMirror pre code {
+  background: transparent;
+  padding: 0;
+  font-size: inherit;
+}
+
+.ProseMirror code {
+  background: var(--muted);
+  padding: 0.2rem 0.5rem;
+  border-radius: 6px;
+  font-family: 'JetBrains Mono', 'Fira Code', 'SF Mono', monospace;
+  font-size: 0.875em;
+}
+
+/* Syntax Highlighting */
+.hljs-comment,
+.hljs-quote {
+  color: #6b7280;
+}
+
+.hljs-keyword,
+.hljs-selector-tag {
+  color: #8b5cf6;
+}
+
+.hljs-string,
+.hljs-attr {
+  color: #10b981;
+}
+
+.hljs-number,
+.hljs-literal {
+  color: #f59e0b;
+}
+
+.hljs-function,
+.hljs-title {
+  color: #3b82f6;
+}
+
+.hljs-built_in,
+.hljs-type {
+  color: #ec4899;
+}
+
+@media (prefers-color-scheme: dark) {
+
+  .hljs-comment,
+  .hljs-quote {
+    color: #6b7280;
+  }
+
+  .hljs-keyword,
+  .hljs-selector-tag {
+    color: #a78bfa;
+  }
+
+  .hljs-string,
+  .hljs-attr {
+    color: #34d399;
+  }
+
+  .hljs-number,
+  .hljs-literal {
+    color: #fbbf24;
+  }
+
+  .hljs-function,
+  .hljs-title {
+    color: #60a5fa;
+  }
+
+  .hljs-built_in,
+  .hljs-type {
+    color: #f472b6;
+  }
+}
+
+/* ========================================
+   Blockquote Styles
+   ======================================== */
+.ProseMirror blockquote {
+  border-left: 4px solid var(--primary);
+  padding-left: 1.25rem;
+  margin: 1.5rem 0;
+  font-style: italic;
+  color: var(--muted-foreground);
+  background: linear-gradient(90deg, var(--muted) 0%, transparent 100%);
+  border-radius: 0 8px 8px 0;
+  padding: 1rem 1.25rem;
+}
+
+/* ========================================
+   Horizontal Rule
+   ======================================== */
+.ProseMirror hr {
+  border: none;
+  height: 2px;
+  background: linear-gradient(90deg, transparent, var(--border), transparent);
+  margin: 2.5rem 0;
+}
+
+/* ========================================
+   Button & Interactive Element Animations
+   ======================================== */
+button,
+[role="button"] {
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+button:hover,
+[role="button"]:hover {
+  transform: translateY(-1px);
+}
+
+button:active,
+[role="button"]:active {
+  transform: translateY(0) scale(0.98);
+}
+
+/* Sidebar item hover */
+aside button:hover {
+  transform: translateX(2px);
+}
+
+/* ========================================
+   Modal & Popover Animations
+   ======================================== */
+[data-state="open"] {
+  animation: scale-in 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* ========================================
+   Loading States
+   ======================================== */
+.loading-shimmer {
+  background: linear-gradient(90deg,
+      var(--muted) 0%,
+      var(--background) 50%,
+      var(--muted) 100%);
+  background-size: 200% 100%;
+  animation: shimmer 1.5s infinite;
+}
+
+/* ========================================
+   Scrollbar Styling
+   ======================================== */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--muted-foreground);
+}
+
+/* ========================================
+   Focus States
+   ======================================== */
+*:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* ========================================
+   Selection Styling
+   ======================================== */
+::selection {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
