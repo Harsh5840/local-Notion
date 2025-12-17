@@ -9,6 +9,10 @@ import { Plus, PanelLeftOpen } from "lucide-react";
 
 const Editor = dynamic(() => import('@/components/Editor').then(mod => mod.Editor), { ssr: false });
 
+import { AIChatSidebar } from "@/components/AIChatSidebar";
+
+// ... existing imports
+
 export default function Home() {
   const [currentNoteId, setCurrentNoteId] = useState<string | null>(null);
   const [content, setContent] = useState("");
@@ -16,6 +20,7 @@ export default function Home() {
   const [background, setBackground] = useState("");
   const [icon, setIcon] = useState("");
   const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
 
   const handleNewNote = async () => {
@@ -65,14 +70,22 @@ export default function Home() {
         )}
 
         {currentNoteId ? (
-          <Editor
-            key={currentNoteId}
-            noteId={currentNoteId}
-            initialContent={content}
-            initialTitle={title}
-            initialBackground={background}
-            initialIcon={icon}
-          />
+          <>
+            <Editor
+              key={currentNoteId}
+              noteId={currentNoteId}
+              initialContent={content}
+              initialTitle={title}
+              initialBackground={background}
+              initialIcon={icon}
+              onToggleChat={() => setIsChatOpen(!isChatOpen)}
+            />
+            <AIChatSidebar
+              isOpen={isChatOpen}
+              onClose={() => setIsChatOpen(false)}
+              context={title + "\n\n" + content}
+            />
+          </>
         ) : (
           <div className="flex flex-col items-center justify-center h-full text-muted-foreground space-y-6 animate-in fade-in zoom-in-95 duration-500">
             <div className="text-center space-y-2">

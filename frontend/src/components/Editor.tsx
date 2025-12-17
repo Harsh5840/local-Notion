@@ -16,8 +16,8 @@ import { common, createLowlight } from 'lowlight';
 import { Extension } from '@tiptap/core';
 import Suggestion from '@tiptap/suggestion';
 
-import { Sparkles, Wand2, X, Languages, ImagePlus, MessageSquare, FileText, Lightbulb, ListChecks, Repeat, Brain, Star } from 'lucide-react';
-import { ProcessContent, GenerateContent, SaveNote, SaveImage, SetNoteBackground, SetNoteIcon } from '@/wailsjs/go/main/App';
+import { Sparkles, Wand2, X, Languages, ImagePlus, MessageSquare, FileText, Lightbulb, ListChecks, Repeat, Brain, Star, Mic, MicOff, ImageIcon, Palette } from 'lucide-react';
+import { ProcessContent, GenerateContent, SaveNote, SaveImage, SetNoteBackground, SetNoteIcon, GenerateCoverImage, SummarizeText, TranscribeAudio, AnalyzeSentiment } from '@/wailsjs/go/main/App';
 import { useState, useEffect, useRef, memo, useMemo, useCallback } from 'react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -71,16 +71,20 @@ interface EditorProps {
     initialTitle: string;
     initialBackground?: string;
     initialIcon?: string;
+    onToggleChat?: () => void;
 }
 
-function EditorComponent({ noteId, initialContent, initialTitle, initialBackground = '', initialIcon = '' }: EditorProps) {
+function EditorComponent({ noteId, initialContent, initialTitle, initialBackground = '', initialIcon = '', onToggleChat }: EditorProps) {
     const [isProcessing, setIsProcessing] = useState(false);
+    const [isListening, setIsListening] = useState(false);
+    const [isGeneratingCover, setIsGeneratingCover] = useState(false);
     const [aiPrompt, setAiPrompt] = useState("");
     const [showAiInput, setShowAiInput] = useState(false);
     const [title, setTitle] = useState(initialTitle);
     const [mounted, setMounted] = useState(false);
     const [background, setBackground] = useState(initialBackground);
     const [icon, setIcon] = useState(initialIcon);
+    const [coverImage, setCoverImage] = useState<string>('');
     const [showBackgroundPicker, setShowBackgroundPicker] = useState(false);
     const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 
@@ -90,6 +94,7 @@ function EditorComponent({ noteId, initialContent, initialTitle, initialBackgrou
     // Refs for accessing latest state in callbacks without re-creating editor
     const titleRef = useRef(title);
     const noteIdRef = useRef(noteId);
+    const recognitionRef = useRef<any>(null); // For Web Speech API
 
     useEffect(() => {
         titleRef.current = title;
@@ -189,12 +194,44 @@ function EditorComponent({ noteId, initialContent, initialTitle, initialBackgrou
                 }
                 return false;
             },
+            handleKeyDown: (view, event) => {
+                // AI Autocomplete (Ctrl+J / Cmd+J)
+                if (event.key === 'j' && (event.metaKey || event.ctrlKey)) {
+                    event.preventDefault();
+                    triggerAutocomplete();
+                    return true;
+                }
+                return false;
+            },
         },
         onUpdate: ({ editor }) => {
             debouncedSave(noteIdRef.current, titleRef.current, editor.getHTML());
         },
         immediatelyRender: false,
     });
+
+    const triggerAutocomplete = async () => {
+        if (!editor || isProcessing) return;
+
+        const { from } = editor.state.selection;
+        // Get last 1000 characters for context
+        const contextStart = Math.max(0, from - 1000);
+        const context = editor.state.doc.textBetween(contextStart, from);
+
+        setIsProcessing(true);
+        try {
+            const prompt = `Complete the following text naturally, continuing the thought or sentence. Keep it concise (max 2-3 sentences). \n\nText: "${context}"`;
+            const result = await GenerateContent(prompt);
+
+            if (result && !result.startsWith("Error")) {
+                await insertMarkdownAsHtml(result);
+            }
+        } catch (error) {
+            console.error(error);
+        } finally {
+            setIsProcessing(false);
+        }
+    };
 
     // Handle image upload
     const handleImageUpload = async (file: File) => {
@@ -226,6 +263,117 @@ function EditorComponent({ noteId, initialContent, initialTitle, initialBackgrou
         };
         input.click();
     };
+
+    // --- Voice Recording ---
+    const toggleRecording = () => {
+        if (isListening) {
+            stopRecording();
+        } else {
+            startRecording();
+        }
+    };
+
+    const startRecording = () => {
+        if (!('webkitSpeechRecognition' in window)) {
+            alert('Speech recognition is not supported in your browser.');
+            return;
+        }
+
+        const recognition = new (window as any).webkitSpeechRecognition();
+        recognition.continuous = true;
+        recognition.interimResults = true;
+        recognition.lang = 'en-US';
+
+        recognition.onstart = () => {
+            setIsListening(true);
+        };
+
+        recognition.onresult = (event: any) => {
+            let transcript = '';
+            for (let i = event.resultIndex; i < event.results.length; ++i) {
+                if (event.results[i].isFinal) {
+                    transcript += event.results[i][0].transcript;
+                }
+            }
+            if (transcript && editor) {
+                editor.commands.insertContent(transcript + " ");
+            }
+        };
+
+        recognition.onerror = (event: any) => {
+            console.error('Speech recognition error', event.error);
+            setIsListening(false);
+        };
+
+        recognition.onend = () => {
+            setIsListening(false);
+        };
+
+        recognition.start();
+        recognitionRef.current = recognition;
+    };
+
+    const stopRecording = () => {
+        if (recognitionRef.current) {
+            recognitionRef.current.stop();
+            recognitionRef.current = null;
+        }
+    };
+
+    // --- AI Cover Image Generation ---
+    const generateCover = async () => {
+        if (!title || isGeneratingCover) return;
+        setIsGeneratingCover(true);
+        try {
+            // Generate a prompt based on the note title
+            const prompt = `A beautiful, artistic cover image for a note titled "${title}". Modern, minimal, abstract art style with soft gradients and professional feel. No text.`;
+            const imagePath = await GenerateCoverImage(prompt, noteId);
+            if (imagePath) {
+                setCoverImage(imagePath);
+            }
+        } catch (error) {
+            console.error('Failed to generate cover:', error);
+        } finally {
+            setIsGeneratingCover(false);
+        }
+    };
+
+    // --- Quick Summarize ---
+    const quickSummarize = async () => {
+        if (!editor || isProcessing) return;
+        const fullText = editor.getText();
+        if (!fullText.trim()) return;
+
+        setIsProcessing(true);
+        try {
+            const summary = await SummarizeText(fullText);
+            if (summary) {
+                // Insert summary at the top
+                editor.commands.insertContentAt(0, `<blockquote><strong>Summary:</strong> ${summary}</blockquote><p></p>`);
+            }
+        } catch (error) {
+            console.error('Summarize failed:', error);
+        } finally {
+            setIsProcessing(false);
+        }
+    };
+
+    // --- Sentiment Analysis ---
+    const analyzeMood = async () => {
+        if (!editor) return;
+        const fullText = editor.getText();
+        if (!fullText.trim()) return;
+
+        try {
+            const result = await AnalyzeSentiment(fullText);
+            if (result) {
+                alert(`Mood: ${result.sentiment} (${Math.round((result.confidence as number) * 100)}% confidence)`);
+            }
+        } catch (error) {
+            console.error('Sentiment analysis failed:', error);
+        }
+    };
+
 
     // Initial load sync
     useEffect(() => {
@@ -336,6 +484,24 @@ function EditorComponent({ noteId, initialContent, initialTitle, initialBackgrou
             )}
 
             <div className="editor-content-wrapper max-w-3xl mx-auto px-8 py-12 relative min-h-screen animate-in fade-in duration-700">
+                {/* Cover Image */}
+                {coverImage && (
+                    <div className="relative w-full h-48 mb-6 rounded-xl overflow-hidden group">
+                        <img
+                            src={coverImage}
+                            alt="Note cover"
+                            className="w-full h-full object-cover"
+                        />
+                        <div className="absolute inset-0 bg-gradient-to-t from-background/80 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
+                        <button
+                            onClick={() => setCoverImage('')}
+                            className="absolute top-2 right-2 p-1.5 bg-background/80 rounded-full opacity-0 group-hover:opacity-100 transition-opacity hover:bg-background"
+                        >
+                            <X className="w-4 h-4" />
+                        </button>
+                    </div>
+                )}
+
                 {/* Icon & Title */}
                 <div className="flex items-start gap-4 mb-8">
                     <EmojiPickerTrigger
@@ -349,6 +515,13 @@ function EditorComponent({ noteId, initialContent, initialTitle, initialBackgrou
                         value={title}
                         onChange={(e) => handleTitleChange(e.target.value)}
                     />
+                    {onToggleChat && (
+                        <div className="mt-2">
+                            <Button onClick={onToggleChat} variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground">
+                                <MessageSquare className="w-5 h-5" />
+                            </Button>
+                        </div>
+                    )}
                 </div>
 
                 {/* Toolbar */}
@@ -373,6 +546,15 @@ function EditorComponent({ noteId, initialContent, initialTitle, initialBackgrou
                         Format
                     </Button>
                     <Button
+                        onClick={toggleRecording}
+                        variant="ghost"
+                        size="sm"
+                        className={cn("gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/50", isListening && "text-red-500 bg-red-500/10 hover:bg-red-500/20 animate-pulse")}
+                    >
+                        {isListening ? <MicOff className="w-4 h-4" /> : <Mic className="w-4 h-4" />}
+                        {isListening ? "Stop" : "Dictate"}
+                    </Button>
+                    <Button
                         onClick={triggerImageUpload}
                         variant="ghost"
                         size="sm"
@@ -380,6 +562,35 @@ function EditorComponent({ noteId, initialContent, initialTitle, initialBackgrou
                     >
                         <ImagePlus className="w-4 h-4" />
                         Image
+                    </Button>
+                    <Button
+                        onClick={generateCover}
+                        disabled={isGeneratingCover || !title}
+                        variant="ghost"
+                        size="sm"
+                        className={cn("gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/50", isGeneratingCover && "animate-pulse")}
+                    >
+                        <Palette className="w-4 h-4" />
+                        {isGeneratingCover ? "Generating..." : "Cover"}
+                    </Button>
+                    <Button
+                        onClick={quickSummarize}
+                        disabled={isProcessing}
+                        variant="ghost"
+                        size="sm"
+                        className="gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    >
+                        <FileText className="w-4 h-4" />
+                        TL;DR
+                    </Button>
+                    <Button
+                        onClick={analyzeMood}
+                        variant="ghost"
+                        size="sm"
+                        className="gap-2 text-muted-foreground hover:text-foreground hover:bg-muted/50"
+                    >
+                        <Brain className="w-4 h-4" />
+                        Mood
                     </Button>
                     <BackgroundPickerButton onClick={() => setShowBackgroundPicker(true)} />
                 </div>
